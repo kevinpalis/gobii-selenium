@@ -96,7 +96,7 @@ class ExtractorUITest(unittest.TestCase):
         loginButton.click()
         time.sleep(2)
 
-    # Selenium Extractor UI Datasets testing
+    # Extractor UI Datasets testing
     def testExtractorUiDatasets(self):
         
         exportFormatVal = "0" # Hapmap as default
