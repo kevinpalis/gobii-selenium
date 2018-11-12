@@ -33,6 +33,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
+import re
 
 # get values from config properties file
 config = ConfigParser.RawConfigParser()
@@ -65,6 +66,7 @@ checkboxRowXpath = "(//p-datatable//p-checkbox)[1]" # first checkbox in the data
 class ExtractorUITest(unittest.TestCase):
 
     # driver set up
+    @classmethod
     def setUp(self):
 
         options = Options()
@@ -76,50 +78,54 @@ class ExtractorUITest(unittest.TestCase):
         self.driver = webdriver.Chrome(executable_path='/usr/bin/chromedriver', chrome_options=options)    
 
     # log in
-    def logIn(self):
-        print("Logging in...\n")
-        driver = self.driver
-        # click first checkbox element
-        checkboxField = driver.find_element_by_xpath(loginCheckBoxXpath)
-        checkboxField.click()
+    def test_log_in(self):
+        
+        try:
+            print("\nLogging in...\n")
+            driver = self.driver
 
-        # find first input element with name username and input username
-        usernameField = driver.find_element_by_xpath(usernameXpath) 
-        usernameField.send_keys(username)
+            # load extractor UI website defined in the properties file
+            driver.get(extractorUILink)
+            self.assertIn("GOBii Extractor", driver.title)
 
-        # find first input element with name password and input password
-        passwordField = driver.find_element_by_xpath(passwordXPath)
-        passwordField.send_keys(password)
+            # maximize window
+            driver.maximize_window()
 
-        # click login button
-        loginButton = driver.find_element_by_xpath(loginButtonXpath)
-        loginButton.click()
-        time.sleep(2)
+            # wait for the form to load
+            time.sleep(4)
+
+            # click first checkbox element
+            checkboxField = driver.find_element_by_xpath(loginCheckBoxXpath)
+            checkboxField.click()
+
+            # find first input element with name username and input username
+            usernameField = driver.find_element_by_xpath(usernameXpath) 
+            usernameField.send_keys(username)
+
+            # find first input element with name password and input password
+            passwordField = driver.find_element_by_xpath(passwordXPath)
+            passwordField.send_keys(password)
+
+            # click login button
+            loginButton = driver.find_element_by_xpath(loginButtonXpath)
+            loginButton.click()
+            time.sleep(2)
+
+            # check if Extract Filtering text appears in the page
+            extractFilteringFound = re.search(r'Extract Filtering', driver.page_source)
+            self.assertNotEqual(extractFilteringFound, None)
+
+        except Exception as e:
+            self.fail('Failed to login. Cause: %s' % e)
+
 
     # Extractor UI Datasets testing
-    def testExtractorUiDatasets(self):
+    def test_extractorui_datasets(self):
         
-        exportFormatVal = "0" # Hapmap as default
-        # right now this is based from the position of the radio buttons inside the shadow root
-        if exportFormat == 'FLAPJACK':
-            exportFormatVal = "1" # Flapjack
-        elif exportFormat == 'META_DATA_ONLY':
-            exportFormatVal = "2" # Sample Metadata
-
         driver = self.driver
 
-        # load extractor UI website defined in the properties file
-        driver.get(extractorUILink)
-        self.assertIn("GOBii Extractor", driver.title)
-
-        # maximize window
-        driver.maximize_window()
-
-        # wait for the form to load
-        time.sleep(4)
-
         #log in
-        self.logIn()        
+        self.test_log_in() 
 
         try:
             # dropdown fields
@@ -145,16 +151,18 @@ class ExtractorUITest(unittest.TestCase):
                         dropdownValuesUpdated = ['All ' + dropdownField[2]] + dropdownField[3]
                         # check if dropdown values equal 
                         self.checkIfDropdownValsEqual(dropdownFieldObj.options, dropdownValuesUpdated, dropdownField[2])
+
+                    time.sleep(1)
                 
                 except(NoSuchElementException,TimeoutException) as e:
                     # If value could not be found in the dropdown list
                     print("Test failed: %s %s could not be found in the list" % (dropdownField[1], dropdownField[2]))
                 
             # find export formt field and clicks a value, access shadow root element
-            exportFormatField = driver.execute_script('return document.querySelector("export-format").shadowRoot.querySelectorAll("p-radiobutton")['+exportFormatVal+']')
+            exportFormatField = driver.execute_script('return document.querySelector("export-format").shadowRoot.querySelectorAll("p-radiobutton[value=\''+exportFormat+'\']")[0]')
             exportFormatField.click()        
             print("Selected export format:", exportFormat)
-            time.sleep(3)
+            time.sleep(1)
 
             # checks first row in table
             dataTableVal = driver.find_element_by_xpath(checkboxRowXpath)
@@ -164,17 +172,16 @@ class ExtractorUITest(unittest.TestCase):
             submitButton = driver.find_element_by_xpath(submitButtonXpath)
             submitButton.click()
 
+            time.sleep(2)
+
             # check if success notification appeared
-            if("System Message" in driver.page_source):
-                print("Successfully extracted...")
-            else:
-                print("Failed. Extraction unsuccessful...")
+            successNotifFound = re.search(r'Extractor instruction file created on server: ', driver.page_source)
+            self.assertNotEqual(successNotifFound, None)
 
-        except Exception as e1:
-            self.assertTrue(True)
-            print("Failed. %s" % e1)
+        except Exception as e:
+            self.fail('Failed to extract datasets. Cause: %s' % e)
 
-        time.sleep(5)
+        time.sleep(2)
 
     '''
     Checks if dropdown values of an attribute are 
@@ -198,8 +205,8 @@ class ExtractorUITest(unittest.TestCase):
         else:
             print("Failed. %s values are NOT equal..." % attr)
         
+    @classmethod
     def tearDown(self):
-        print("Closing the browser")
         self.driver.close()
 
 if __name__ == "__main__":
