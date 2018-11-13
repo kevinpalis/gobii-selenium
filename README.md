@@ -1,6 +1,6 @@
 # GOBii Automated UI Testing
 
-This reposotory contains scripts for GOBii Selenium automated web application testing
+This repository contains scripts for GOBii Selenium automated web application testing
 
 
 ### DIRECTORY STRUCTURE

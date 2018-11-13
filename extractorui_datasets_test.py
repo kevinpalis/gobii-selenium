@@ -25,6 +25,7 @@ from __future__ import print_function
 import xmlrunner
 import unittest
 import xmlrunner
+import sys
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 import time
@@ -35,22 +36,64 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
 import re
 
+# default if field is not in config file
+defaults = {
+    'datasets.principalInvestigator': None,
+    'datasets.project': None,
+    'datasets.experiment': None,
+    'datasets.exportFormat': None,
+    'datasets.datasets': None,
+    'datasets.mapset': None
+}
+
 # get values from config properties file
-config = ConfigParser.RawConfigParser()
+config = ConfigParser.RawConfigParser(defaults = defaults)
 config.read('ConfigFile.properties')
 
 # global variables
 extractorUILink = config.get('SiteSection','site.address') # Extractor UI address
 username = config.get('UserAccountSection', 'user.username') # username
 password = config.get('UserAccountSection', 'user.password') # password
-principalInvestigator = config.get('DatasetsParamsSection', 'datasets.principalInvestigator') # principal investigator
-project = config.get('DatasetsParamsSection','datasets.project') # project
-experiment = config.get('DatasetsParamsSection','datasets.experiment') # eperiment
-exportFormat = config.get('DatasetsParamsSection','datasets.exportFormat') # export format
 
-# expected dropdown list values
-projectValues = config.get('DatasetsParamsSection','datasets.projectValues').split("\n") # project values
-experimentValues = config.get('DatasetsParamsSection','datasets.experimentValues').split("\n") # experiment values
+# params for test case 1
+test1PrincipalInvestigator = config.get('Test1DatasetsParamsSection', 'datasets.principalInvestigator') # principal investigator
+test1Project = config.get('Test1DatasetsParamsSection','datasets.project') # project
+test1Experiment = config.get('Test1DatasetsParamsSection','datasets.experiment') # eperiment
+test1ExportFormat = config.get('Test1DatasetsParamsSection','datasets.exportFormat') # export format
+test1Datasets = config.get('Test1DatasetsParamsSection','datasets.datasets').split("\n") # datasets name
+test1Mapset = config.get('Test1DatasetsParamsSection','datasets.mapset')
+
+# params for test case 2
+test2PrincipalInvestigator = config.get('Test2DatasetsParamsSection', 'datasets.principalInvestigator') # principal investigator
+test2Project = config.get('Test2DatasetsParamsSection','datasets.project') # project
+test2Experiment = config.get('Test2DatasetsParamsSection','datasets.experiment') # eperiment
+test2ExportFormat = config.get('Test2DatasetsParamsSection','datasets.exportFormat') # export format
+test2Datasets = config.get('Test2DatasetsParamsSection','datasets.datasets').split("\n") # datasets name
+test2Mapset = config.get('Test2DatasetsParamsSection','datasets.mapset')
+
+# params for test case 3
+test3PrincipalInvestigator = config.get('Test3DatasetsParamsSection', 'datasets.principalInvestigator') # principal investigator
+test3Project = config.get('Test3DatasetsParamsSection','datasets.project') # project
+test3Experiment = config.get('Test3DatasetsParamsSection','datasets.experiment') # eperiment
+test3ExportFormat = config.get('Test3DatasetsParamsSection','datasets.exportFormat') # export format
+test3Datasets = config.get('Test3DatasetsParamsSection','datasets.datasets').split("\n") # datasets name
+test3Mapset = config.get('Test3DatasetsParamsSection','datasets.mapset')
+
+# params for test case 4
+test4PrincipalInvestigator = config.get('Test4DatasetsParamsSection', 'datasets.principalInvestigator') # principal investigator
+test4Project = config.get('Test4DatasetsParamsSection','datasets.project') # project
+test4Experiment = config.get('Test4DatasetsParamsSection','datasets.experiment') # eperiment
+test4ExportFormat = config.get('Test4DatasetsParamsSection','datasets.exportFormat') # export format
+test4Datasets = config.get('Test4DatasetsParamsSection','datasets.datasets').split("\n") # datasets name
+test4Mapset = config.get('Test4DatasetsParamsSection','datasets.mapset')
+
+# params for test case 5
+test5PrincipalInvestigator = config.get('Test5DatasetsParamsSection', 'datasets.principalInvestigator') # principal investigator
+test5Project = config.get('Test5DatasetsParamsSection','datasets.project') # project
+test5Experiment = config.get('Test5DatasetsParamsSection','datasets.experiment') # eperiment
+test5ExportFormat = config.get('Test5DatasetsParamsSection','datasets.exportFormat') # export format
+test5Datasets = config.get('Test5DatasetsParamsSection','datasets.datasets').split("\n") # datasets name
+test5Mapset = config.get('Test5DatasetsParamsSection','datasets.mapset')
 
 # xPath variables
 loginCheckBoxXpath = "//p-checkbox" # checkbox in the login page
@@ -60,22 +103,28 @@ loginButtonXpath = "//button" # login buttom
 principalInvestigatorXpath = "//select[@class='nameIdListBox']" # principal investigator dropdown list
 projectXpath = "(//select[@class='nameIdListBox'])[2]" # project dropdown list
 experimentXpath = "(//select[@class='nameIdListBox'])[3]" # experiment dropdown list
+mapsetXpath = "(//select[@class='nameIdListBox'])[4]" # experiment dropdown list
 submitButtonXpath = "//button[@type='submit']" # submit button
 checkboxRowXpath = "(//p-datatable//p-checkbox)[1]" # first checkbox in the data table
+sleepTime = 1
 
 class ExtractorUITest(unittest.TestCase):
 
     # driver set up
     @classmethod
     def setUp(self):
-
+       
         options = Options()
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--headless')
         options.add_argument('--disable-gpu')
 
-        self.driver = webdriver.Chrome(chrome_options=options)    
+        # check for mode 1: Normal, 2: Headless
+        if (self.mode == '2'):
+            options.add_argument('--headless')
+            sleepTime = 0
+
+        self.driver = webdriver.Chrome(chrome_options=options)
 
     # log in
     def test_log_in(self):
@@ -92,7 +141,7 @@ class ExtractorUITest(unittest.TestCase):
             driver.maximize_window()
 
             # wait for the form to load
-            time.sleep(4)
+            time.sleep(1 + sleepTime)
 
             # click first checkbox element
             checkboxField = driver.find_element_by_xpath(loginCheckBoxXpath)
@@ -109,7 +158,8 @@ class ExtractorUITest(unittest.TestCase):
             # click login button
             loginButton = driver.find_element_by_xpath(loginButtonXpath)
             loginButton.click()
-            time.sleep(2)
+
+            time.sleep(sleepTime)
 
             # check if Extract Filtering text appears in the page
             extractFilteringFound = re.search(r'Extract Filtering', driver.page_source)
@@ -119,97 +169,179 @@ class ExtractorUITest(unittest.TestCase):
             self.fail('Failed to login. Cause: %s' % e)
 
 
-    # Extractor UI Datasets testing
-    def test_extractorui_datasets(self):
-        
-        driver = self.driver
+    # Run test cases
+    def runTest(self, number, opts, exportFormat, datasets, driver):
+        print("\nTest case "+number+"\n")
 
-        #log in
+        # log in
         self.test_log_in() 
+        # got to dataset tab
+        self.goToDatasetTab(driver)
 
         try:
-            # dropdown fields
-            dropdownFields = [ 
-                [principalInvestigatorXpath, principalInvestigator, 'Principle Investigators', []],
-                [projectXpath, project, 'Projects', projectValues],
-                [experimentXpath, experiment, 'Experiments', experimentValues]
-            ]
 
-            '''
-            loop through dropdown list fields, selects values 
-            and checks if field values are equal to expected values
-            '''
-            for dropdownField in dropdownFields:                
-                try:
-
-                    dropdownFieldObj = Select(driver.find_element_by_xpath(dropdownField[0]))
-                    dropdownFieldObj.select_by_visible_text(dropdownField[1])
-                    print("Selected %s: %s" % (dropdownField[2], dropdownField[1]))
-
-                    if(dropdownField[1] != principalInvestigator):
-                        # include 'All + field' in the options
-                        dropdownValuesUpdated = ['All ' + dropdownField[2]] + dropdownField[3]
-                        # check if dropdown values equal 
-                        self.checkIfDropdownValsEqual(dropdownFieldObj.options, dropdownValuesUpdated, dropdownField[2])
-
-                    time.sleep(1)
-                
-                except(NoSuchElementException,TimeoutException) as e:
-                    # If value could not be found in the dropdown list
-                    print("Test failed: %s %s could not be found in the list" % (dropdownField[1], dropdownField[2]))
-                
-            # find export formt field and clicks a value, access shadow root element
-            exportFormatField = driver.execute_script('return document.querySelector("export-format").shadowRoot.querySelectorAll("p-radiobutton[value=\''+exportFormat+'\']")[0]')
-            exportFormatField.click()        
-            print("Selected export format:", exportFormat)
-            time.sleep(1)
-
-            # checks first row in table
-            dataTableVal = driver.find_element_by_xpath(checkboxRowXpath)
-            dataTableVal.click()
-
+            # select datasets parameters
+            self.selectDatasetsParams(exportFormat, opts, driver)
+            # select datasets
+            self.selectDatasets(datasets, driver)
             # click submit button
-            submitButton = driver.find_element_by_xpath(submitButtonXpath)
-            submitButton.click()
-
-            time.sleep(2)
-
-            # check if success notification appeared
-            successNotifFound = re.search(r'Extractor instruction file created on server: ', driver.page_source)
-            self.assertNotEqual(successNotifFound, None)
+            self.submit(driver)
 
         except Exception as e:
             self.fail('Failed to extract datasets. Cause: %s' % e)
 
-        time.sleep(2)
+        time.sleep(sleepTime)
+
+    # Test case 1 Extractor UI Datasets testing
+    def test_1_extractorui_datasets(self):
+        driver = self.driver
+
+        # dropdown fields
+        opts = [ 
+            test1PrincipalInvestigator,
+            test1Project,
+            test1Experiment,
+            test1Mapset
+        ]
+
+        self.runTest('1', opts, test1ExportFormat, test1Datasets, driver)
+
+    # Test case 2 Extractor UI Datasets testing
+    def test_2_extractorui_datasets(self):
+        driver = self.driver
+
+        # dropdown fields
+        opts = [ 
+            test2PrincipalInvestigator,
+            test2Project,
+            test2Experiment,
+            test2Mapset
+        ]
+
+        self.runTest('2', opts, test2ExportFormat, test2Datasets, driver)
+
+    # Test case 3 Extractor UI Datasets testing
+    def test_3_extractorui_datasets(self):
+        driver = self.driver
+
+        # dropdown fields
+        opts = [ 
+            test3PrincipalInvestigator,
+            test3Project,
+            test3Experiment,
+            test3Mapset
+        ]
+
+        self.runTest('3', opts, test3ExportFormat, test3Datasets, driver)
+
+    # Test case 4 Extractor UI Datasets testing
+    def test_4_extractorui_datasets(self):
+        driver = self.driver
+
+        # dropdown fields
+        opts = [ 
+            test4PrincipalInvestigator,
+            test4Project,
+            test4Experiment,
+            test4Mapset
+        ]
+
+        self.runTest('4', opts, test4ExportFormat, test4Datasets, driver)
+
+    # Test case 5 Extractor UI Datasets testing
+    def test_1_extractorui_datasets(self):
+        driver = self.driver
+
+        # dropdown fields
+        opts = [ 
+            test5PrincipalInvestigator,
+            test5Project,
+            test5Experiment,
+            test5Mapset
+        ]
+
+        self.runTest('5', opts, test5ExportFormat, test5Datasets, driver)
+
+    # Click to dataset tab
+    def goToDatasetTab(self, driver):
+        # click By dataset tab
+        datasetTab = driver.find_element_by_xpath(".//span[contains(text(), 'By Dataset')]")
+        datasetTab.click()
 
     '''
-    Checks if dropdown values of an attribute are 
-    equal to expected values defined in properties file
-    @param dropdownOptions: options of the attribute (i.e. List options of Project dropdown field)
-    @param expectedVals: expected values of the dropdown list
-    @param attr: field that wants to be checked (i.e. Project)
-    ''' 
-    def checkIfDropdownValsEqual(self, dropdownOptions, expectedVals, attr):
-        selectValsArr = []
+    Select values in dropdown list if value exists in config file
+    Select export format
+    @param dropdownFields: dropdown fields
+    @param exportFormat: export format
+    '''
+    def selectDatasetsParams(self, exportFormat, opts, driver):
+        # dropdown fields
+        dropdownFields = [ 
+            [principalInvestigatorXpath, opts[0], 'Principle Investigators'],
+            [projectXpath, opts[1], 'Projects'],
+            [experimentXpath, opts[2], 'Experiments'],
+            [mapsetXpath, opts[3], 'Mapset']
+        ]
 
-        # loop through the dropdown options, strip the values and stores it in an array
-        for opt in dropdownOptions:
-            selectValsArr.append(opt.text.strip())
+        '''
+        loop through dropdown list fields, selects values 
+        and checks if field values are equal to expected values
+        '''
+        for dropdownField in dropdownFields:                
+            try:
+                # if value is defined in the config file
+                if(dropdownField[1] != None):
+                    dropdownFieldObj = Select(driver.find_element_by_xpath(dropdownField[0]))
+                    dropdownFieldObj.select_by_visible_text(dropdownField[1])
+                    print("Selected %s: %s" % (dropdownField[2], dropdownField[1]))
 
-        # compares if project list is equal to that of in the config file
-        isValsEqual = (selectValsArr==expectedVals) 
+                time.sleep(sleepTime)
+            
+            except(NoSuchElementException,TimeoutException) as e:
+                # If value could not be found in the dropdown list
+                print("Test failed: %s %s could not be found in the list" % (dropdownField[1], dropdownField[2]))
+            
+        # find export formt field and clicks a value, access shadow root element
+        exportFormatField = driver.execute_script('return document.querySelector("export-format").shadowRoot.querySelectorAll("p-radiobutton[value=\''+exportFormat+'\']")[0]')
+        exportFormatField.click()        
+        print("Selected export format:", test1ExportFormat)
+        time.sleep(sleepTime)
 
-        if(isValsEqual):
-            print("%s values are equal..." % attr)
-        else:
-            print("Failed. %s values are NOT equal..." % attr)
-        
+    '''
+    Select datasets
+    @param datasets: datasets to be selected
+    '''
+    def selectDatasets(self, datasets, driver):
+        # loop through the datasets and check the checkbox
+        #for name in datasets:
+        #get checkbox
+        # print(name)
+        dataset = driver.find_element_by_xpath("//p-datatable//p-checkbox")
+        dataset.click() 
+        time.sleep(sleepTime)
+
+    # Click submit button and check if successfully extracted
+    def submit(self, driver):
+        # click submit button
+        submitButton = driver.find_element_by_xpath(submitButtonXpath)
+        submitButton.click()
+
+        time.sleep(sleepTime)
+
+        # check if success notification appeared
+        # successNotifFound = re.search(r'Extractor instruction file created on server: ', driver.page_source)
+        # self.assertNotEqual(successNotifFound, None)
+
     @classmethod
     def tearDown(self):
         self.driver.close()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        ExtractorUITest.mode = sys.argv.pop()
+    else:
+        ExtractorUITest.mode = 1 # default is normal mode
+    
     # Generate test reports in xml file
     with open('test-reports/loading_test_results.xml', 'wb') as output:
         unittest.main(testRunner=xmlrunner.XMLTestRunner(output=output))
