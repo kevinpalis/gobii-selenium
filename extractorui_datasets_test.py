@@ -172,7 +172,7 @@ class ExtractorUITest(unittest.TestCase):
 
         try:
             # select datasets parameters
-            self.selectDatasetsParam(opts, exportFormat, driver)
+            self.selectDatasetsParams(opts, exportFormat, driver)
             # select datasets
             self.selectDatasets(datasets, driver)
             # click submit button
@@ -235,9 +235,9 @@ class ExtractorUITest(unittest.TestCase):
 
                 time.sleep(sleepTime)
             
-            except(NoSuchElementException,TimeoutException) as e:
+            except(NoSuchElementException, TimeoutException) as e:
                 # If value could not be found in the dropdown list
-                print("Test failed: %s %s could not be found in the list" % (dropdownField[1], dropdownField[2]))
+                self.fail("Test failed: %s %s could not be found in the list" % (dropdownField[1], dropdownField[2]))
             
         # find export format field and clicks a value, access shadow root element
         exportFormatField = driver.execute_script('return document.querySelector("export-format").shadowRoot.querySelectorAll("p-radiobutton[value=\''+exportFormat+'\']")[0]')
@@ -250,13 +250,17 @@ class ExtractorUITest(unittest.TestCase):
     @param datasets: datasets to be selected
     '''
     def selectDatasets(self, datasets, driver):
-        # loop through the datasets and check the checkbox
-        for name in datasets:
-            dataset = driver.find_element_by_id("DATASET_ROW_CHECKBOX_"+name)
-            dataset.click()
-            print("Selected Dataset:", name)
+        try:
+            # loop through the datasets and check the checkbox
+            for name in datasets:
+                dataset = driver.find_element_by_id("DATASET_ROW_CHECKBOX_"+name.strip())
+                dataset.click()
+                print("Selected Dataset:", name)
 
-            time.sleep(sleepTime)
+                time.sleep(sleepTime)
+        except(NoSuchElementException, TimeoutException) as e:
+                # If dataset could not be found in the list
+                self.fail("Test failed. Dataset could not be found. Error: %s " % e)
 
     # Click submit button and check if successfully extracted
     def submit(self, driver):
