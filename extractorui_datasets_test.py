@@ -70,7 +70,7 @@ experimentXpath = "//select[@id='NAME_ID_LIST_Experiment-Filter-Optional']" # ex
 mapsetXpath = "//select[@id='NAME_ID_LIST_Mapsets']" # experiment dropdown list
 submitButtonXpath = "//button[@id='SUBMIT_BUTTON_EXTRACT']" # submit button
 datasetTabXpath = ".//span[contains(text(), 'By Dataset')]" # Dataset tab
-sleepTime = 1
+sleepTime = 2
 
 class ExtractorUITest(unittest.TestCase):
 
@@ -173,6 +173,8 @@ class ExtractorUITest(unittest.TestCase):
         try:
             # select datasets parameters
             self.selectDatasetsParams(opts, exportFormat, driver)
+
+            time.sleep(sleepTime)
             # select datasets
             self.selectDatasets(datasets, driver)
             # click submit button
