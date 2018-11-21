@@ -104,6 +104,8 @@ class ExtractorUITest(unittest.TestCase):
             # maximize window
             driver.maximize_window()
 
+            print(driver.current_url)
+
             # wait until the form is loaded
             WebDriverWait(driver, 900).until(
                 EC.presence_of_element_located((By.ID, "LOGIN_AGREE_TO_TERMS_CHECKBOX"))
@@ -127,7 +129,7 @@ class ExtractorUITest(unittest.TestCase):
             loginButton = driver.find_element_by_xpath(loginButtonXpath)
             loginButton.click()
 
-            time.sleep(sleepTime)
+            time.sleep(sleepTime + 3)
 
             # check if Extract Filtering text appears in the page
             extractFilteringFound = re.search(r'Extract Filtering', driver.page_source)
