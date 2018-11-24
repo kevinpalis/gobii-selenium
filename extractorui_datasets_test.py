@@ -13,7 +13,7 @@ Steps:
 8. Selects Export file format
 9. Selects datasets based from the config file
 10. Clicks submit button
-11. Checks if extraction was successful
+11. Checks if extraction was successfully submitted
 12. Exit
 
 Tests if user is able to successfully extract data from GOBii's ExtractorUI. 
@@ -289,5 +289,5 @@ if __name__ == '__main__':
         ExtractorUITest.mode = 1 # default is normal mode
     
     # Generate test reports in xml file
-    with open('test-reports/loading_test_results.xml', 'wb') as output:
-        unittest.main(testRunner=xmlrunner.XMLTestRunner(output=output))
+    with open('test-reports/extractorui_test_results.xml', 'wb') as output:
+        unittest.main(testRunner=xmlrunner.XMLTestRunner(output=output),exit=False)
