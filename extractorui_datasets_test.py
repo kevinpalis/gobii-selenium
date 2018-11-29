@@ -14,7 +14,8 @@ Steps:
 9. Selects datasets based from the config file
 10. Clicks submit button
 11. Checks if extraction was successfully submitted
-12. Exit
+12. Checks if extraction of job was completed
+13. Exit
 
 Tests if user is able to successfully extract data from GOBii's ExtractorUI. 
 User credentials and inputted values are stored in properties file 
@@ -27,8 +28,6 @@ Created on November 2018
 from __future__ import print_function
 import xmlrunner
 import unittest
-import xmlrunner
-import sys
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 import time
@@ -40,7 +39,12 @@ from selenium.common.exceptions import TimeoutException
 import re
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+import requests
+import json
+import os
+import sys
 
 # default if field is not in config file
 defaults = {
@@ -92,7 +96,7 @@ class ExtractorUITest(unittest.TestCase):
 
     # log in
     def test_log_in(self):
-        
+
         try:
             print("\nLogging in...\n")
             driver = self.driver
@@ -103,8 +107,6 @@ class ExtractorUITest(unittest.TestCase):
 
             # maximize window
             driver.maximize_window()
-
-            print(driver.current_url)
 
             # wait until the form is loaded
             WebDriverWait(driver, 900).until(
@@ -117,11 +119,11 @@ class ExtractorUITest(unittest.TestCase):
             checkboxField = driver.find_element_by_xpath(loginCheckBoxXpath)
             checkboxField.click()
 
-            # find first input element with name username and input username
+            # find username input field and input username
             usernameField = driver.find_element_by_xpath(usernameXpath) 
             usernameField.send_keys(username)
 
-            # find first input element with name password and input password
+            # find password inut field and input password
             passwordField = driver.find_element_by_xpath(passwordXPath)
             passwordField.send_keys(password)
 
@@ -143,7 +145,6 @@ class ExtractorUITest(unittest.TestCase):
     @para number: test case number
     '''
     def runTest(self, number):
-
         print("\nTest case "+number+"\n")
 
         driver = self.driver
@@ -181,6 +182,16 @@ class ExtractorUITest(unittest.TestCase):
             self.selectDatasets(datasets, driver)
             # click submit button
             self.submit(driver)
+
+            submitMessage = driver.find_element_by_id("SYSTEM_STATUS_MESSAGE_BODY").text;
+            submitMessageArr = submitMessage.split(":")
+
+            print("Submitted with job ID: ", submitMessageArr[1].strip())
+
+            jobName = submitMessageArr[1].strip()
+
+            # store job name in a file
+            self.store_jobs(jobName)
 
         except Exception as e:
             self.fail('Failed to extract datasets. Cause: %s' % e)
@@ -257,14 +268,17 @@ class ExtractorUITest(unittest.TestCase):
         try:
             # loop through the datasets and check the checkbox
             for name in datasets:
-                dataset = driver.find_element_by_id("DATASET_ROW_CHECKBOX_"+name.strip())
-                dataset.click()
-                print("Selected Dataset:", name)
+                try:
+                    dataset = driver.find_element_by_id("DATASET_ROW_CHECKBOX_"+name.strip())
+                    ActionChains(driver).click(dataset).perform()
 
+                    print("Selected Dataset:", name)
+                except Exception as e:
+                    self.fail("Test failed. Dataset %s might not be extract ready or could not be found." % name)
                 time.sleep(sleepTime)
         except(NoSuchElementException, TimeoutException) as e:
-                # If dataset could not be found in the list
-                self.fail("Test failed. Dataset could not be found. Error: %s " % e)
+            # If dataset could not be found in the list
+            self.fail("Test failed. Dataset might not be extract ready or could not be found.")
 
     # Click submit button and check if successfully extracted
     def submit(self, driver):
@@ -278,9 +292,95 @@ class ExtractorUITest(unittest.TestCase):
         successNotifFound = re.search(r'Extractor instruction file created on server: ', driver.page_source)
         self.assertNotEqual(successNotifFound, None)
 
+    # Store job names in a file
+    def store_jobs(self,jobName):
+        file = open("jobs.txt",'a') 
+ 
+        file.write(jobName+";")
+         
+        file.close() 
+
+
+    '''
+    Check status of extraction using web service call
+    Loops through until all jobs are completed
+    This runs after every 30 seconds
+    Maximum number of runs is 40
+    ''' 
+    def test_z_check_status(self):
+        print("Checking status of extraction...")
+
+        try:
+            with open("jobs.txt") as file:  
+                jobNames = file.read()
+
+            jobNames = jobNames.split(';')
+            del jobNames[-1]
+
+            completed=[]
+            totalJobs = len(jobNames)
+            totalJobsCompleted = 0
+            totalRun = 1
+
+            # get access token
+            authUrl = extractorUILink + '/gobii/v1/auth'
+            headers = {
+                'Content-Type': 'application/json',
+                'X-Username': username,
+                'X-Password': password
+            }
+
+            response = requests.post(url = authUrl, data = {'':''}, headers = headers)
+
+            authResponse = json.loads(response.content)
+            accessToken = authResponse['token']
+
+            while totalJobsCompleted < totalJobs:
+                print("\nRun %d" % totalRun)
+                if(totalRun > 40):
+                    break
+                for job in jobNames:
+
+                    if job not in completed:                       
+
+                        getHeaders = {
+                            'Content-Type': 'application/json',
+                            'X-Auth-Token': accessToken
+                        }
+
+                        # get status of job
+                        getStatusUrl = extractorUILink + '/gobii/v1/instructions/extractor/jobs/'+job
+                        getResponse = requests.get(url = getStatusUrl, headers = getHeaders)
+                        getContentResponse = json.loads(getResponse.content)
+
+                        status = getContentResponse['payload']['data'][0]['status']
+
+                        print("Status of JOB "+ job + " is " + status)
+
+                        if(status == 'completed'):
+                            totalJobsCompleted += 1
+
+                            completed.append(job)
+
+                totalRun += 1
+
+                print(totalJobsCompleted,' job/s completed')
+
+                if(totalJobsCompleted != totalJobs):
+                    time.sleep(30)
+
+            # delete file containing job IDs
+            if os.path.exists("jobs.txt"):
+                os.remove("jobs.txt")
+
+            if(totalJobsCompleted != totalJobs):
+                self.fail("Extraction is taking too long. Terminating the test.")
+        except Exception as e:
+            self.fail("Test failed. There was a problem in getting status of job.")
+
     @classmethod
     def tearDown(self):
-        self.driver.close()
+        self.driver.quit()
 
 if __name__ == '__main__':
     if len(sys.argv) == 2: # if mode is set
