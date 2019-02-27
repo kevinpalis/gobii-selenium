@@ -103,7 +103,7 @@ class ExtractorUITest(unittest.TestCase):
 
             # load extractor UI website defined in the properties file
             driver.get(extractorUILink)
-            self.assertIn("GOBii Extractor", driver.title)
+            self.assertIn("GDM Extractor", driver.title)
 
             # maximize window
             driver.maximize_window()
